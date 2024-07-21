@@ -74,6 +74,8 @@ def setup_training_data(filename: Literal['data1.csv', 'data2.csv']) -> pd.DataF
                 or col.startswith('door_sensor')
                 or col.startswith('r')
                 or col.startswith('c')):
+            df[col] = df[col].astype(object)
+
             # Replace with boolean
             df.loc[df[col] > 0, col] = 'on'
             df.loc[df[col] == 0, col] = 'off'
@@ -98,12 +100,14 @@ def get_action(sensor_data):
     #global params
 
     # TODO: Add code to generate your chosen actions, using the current state and sensor_data
-    room1_prediction = room1.prediction(motion=sensor_data['motion_sensor1'])
-    room14_prediction = room14.prediction(motion=sensor_data['motion_sensor2'])
-    room19_prediction = room19.prediction(motion=sensor_data['motion_sensor3'])
-    room28_prediction = room28.prediction(motion=sensor_data['motion_sensor4'])
-    room29_prediction = room29.prediction(motion=sensor_data['motion_sensor5'])
-    room32_prediction = room32.prediction(motion=sensor_data['motion_sensor6'])
+    threshold = 0.99
+
+    room1_prediction = room1.prediction(threshold=threshold, motion=sensor_data['motion_sensor1'])
+    room14_prediction = room14.prediction(threshold=threshold, motion=sensor_data['motion_sensor2'])
+    room19_prediction = room19.prediction(threshold=threshold, motion=sensor_data['motion_sensor3'])
+    room28_prediction = room28.prediction(threshold=threshold, motion=sensor_data['motion_sensor4'])
+    room29_prediction = room29.prediction(threshold=threshold, motion=sensor_data['motion_sensor5'])
+    room32_prediction = room32.prediction(threshold=threshold, motion=sensor_data['motion_sensor6'])
 
     actions_dict = {'lights1': room1_prediction, 'lights2': 'on', 'lights3': 'on', 'lights4': 'on', 
                     'lights5': 'on', 'lights6': 'on', 'lights7': 'on', 'lights8': 'on', 

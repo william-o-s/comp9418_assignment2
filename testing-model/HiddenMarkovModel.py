@@ -17,7 +17,7 @@ class HiddenMarkovModel():
         self.history = []
         self.prev_history = []
 
-    def forward(self, **emission_evi):
+    def forward(self, normalize=False, **emission_evi):
         # get state vars (to be marginalized later)
         state_vars = self.state.domain
 
@@ -45,7 +45,8 @@ class HiddenMarkovModel():
         self.state = f
 
         # normalize state (keep commented out for now)
-        # self.state = self.state.normalize()
+        if normalize:
+            self.state = self.state.normalize()
 
         return self.state
     

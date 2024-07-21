@@ -52,10 +52,17 @@ class RoomPredictor:
 
         self.hmm = HiddenMarkovModel(self.state_factor, self.transition_factor, self.emission_factor, self.var_remap)
 
-    def prediction(self, **evidence):
-        prediction_factor: Factor = self.hmm.forward(**evidence)
-        mle = prediction_factor.table.argmax()
-        return self.outcome_space[self.room][mle]
+    def prediction(self, threshold=0.95, **evidence):
+        prediction_factor: Factor = self.hmm.forward(normalize=True, **evidence)
+
+        if threshold is not None:
+            if prediction_factor['off'] >= threshold:
+                return 'off'
+            return 'on'
+
+        mle_index = prediction_factor.table.argmax()
+        prediction = self.outcome_space[self.room][mle_index]
+        return prediction
 
     def learn_outcome_space(self) -> dict:
         outcome_space = {}
