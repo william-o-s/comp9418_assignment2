@@ -1,6 +1,8 @@
+import numpy as np
+from MF_DiscreteFactors import Factor
 
 class HiddenMarkovModel():
-    def __init__(self, start_state, transition, emission, variable_remap):
+    def __init__(self, start_state: Factor, transition: Factor, emission: Factor, variable_remap: dict):
         '''
         Takes 3 arguments:
         - start_state: a factor representing the start state. E.g. domain might be ('A', 'B', 'C')

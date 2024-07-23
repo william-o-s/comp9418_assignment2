@@ -2,35 +2,11 @@ import pandas as pd
 import numpy as np
 from collections import defaultdict
 from itertools import product
-from BayesNet_VE import BayesNet
-from DiscreteFactors import Factor
-from Graph import Graph
-from HiddenMarkovModel import HiddenMarkovModel
-
-def all_equal_this_index(dict_of_arrays, **fixed_vars):
-    # base index is a boolean vector, everywhere true
-    first_array = dict_of_arrays[list(dict_of_arrays.keys())[0]]
-    index = np.ones_like(first_array, dtype=np.bool_)
-    for var_name, var_val in fixed_vars.items():
-        index = index & (np.asarray(dict_of_arrays[var_name])==var_val)
-    return index
-
-def estimate_factor(data, var_name, parent_names, outcome_space, alpha=2):
-    var_outcomes = outcome_space[var_name]
-    parent_outcomes = [outcome_space[var] for var in (parent_names)]
-    # cartesian product to generate a table of all possible outcomes
-    all_parent_combinations = product(*parent_outcomes)
-
-    f = Factor(list(parent_names)+[var_name], outcome_space)
-    
-    for i, parent_combination in enumerate(all_parent_combinations):
-        parent_vars = dict(zip(parent_names, parent_combination))
-        parent_index = all_equal_this_index(data, **parent_vars)
-        for var_outcome in var_outcomes:
-            var_index = (np.asarray(data[var_name])==var_outcome)
-            f[tuple(list(parent_combination)+[var_outcome])] = ((var_index & parent_index).sum() + alpha) / (parent_index.sum() + alpha - 1)
-            
-    return f
+from MF_BayesNet_VE import BayesNet
+from MF_DiscreteFactors import Factor
+from MF_Graph import Graph
+from MF_HiddenMarkovModel import HiddenMarkovModel
+from MF_Utils import estimate_factor
 
 class RoomPredictor:
     def __init__(self, data: pd.DataFrame, room: str, sensors: list[str]) -> None:
@@ -53,7 +29,7 @@ class RoomPredictor:
         self.hmm = HiddenMarkovModel(self.state_factor, self.transition_factor, self.emission_factor, self.var_remap)
 
     def prediction(self, threshold=0.95, **evidence):
-        prediction_factor: Factor = self.hmm.forward(normalize=True, **evidence)
+        prediction_factor = self.hmm.forward(normalize=True, **evidence)
 
         if threshold is not None:
             if prediction_factor['off'] >= threshold:
@@ -84,25 +60,23 @@ class RoomPredictor:
         return state_factor
 
     def learn_transitions(self) -> Factor:
-        transition_factor = Factor((self.room, self.room + '_next'), self.outcome_space)
+        transition_domain = [self.room, self.room + '_next']
+        transition_factor = Factor(tuple(transition_domain), self.outcome_space)
 
-        room_data = self.training_data[self.room]
+        # Get original and transition column
+        room_t0 = self.training_data[self.room]
+        room_t1 = room_t0.shift(-1)
+        transition_table = pd.concat([room_t0, room_t1], axis=1)
+        transition_table.columns = transition_domain
 
-        # Get total counts
-        transition_counts = defaultdict(int)
-        len_data = len(room_data)
-
-        for i in range(len_data - 1):
-            transition_counts[room_data[i], room_data[i+1]] += 1
-
-        # Normalize probabilities
-        for key in transition_counts:
-            transition_counts[key] = transition_counts[key] / len_data
+        # Get probabilities
+        transition_probs = transition_table.value_counts(normalize=True)
         
-        transition_factor['on', 'on'] = transition_counts[('on', 'on')]
-        transition_factor['on', 'off'] = transition_counts[('on', 'off')]
-        transition_factor['off', 'on'] = transition_counts[('off', 'on')]
-        transition_factor['off', 'off'] = transition_counts[('off', 'off')]
+        # Copy over transition probabilities
+        transition_factor['on', 'on'] = transition_probs[('on', 'on')]
+        transition_factor['on', 'off'] = transition_probs[('on', 'off')]
+        transition_factor['off', 'on'] = transition_probs[('off', 'on')]
+        transition_factor['off', 'off'] = transition_probs[('off', 'off')]
         
         return transition_factor
 

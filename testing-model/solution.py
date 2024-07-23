@@ -36,8 +36,9 @@ import pickle
 import json
 
 # Required libraries
+import re
 from typing import Literal
-from RoomPredictor import RoomPredictor
+from MF_RoomPredictor import RoomPredictor
 
 ###################################
 # Code stub
@@ -67,6 +68,9 @@ def setup_training_data(filename: Literal['data1.csv', 'data2.csv']) -> pd.DataF
             # df.loc[df[col] == 'no motion', col] = 'off'
             pass
         elif col.startswith('robot'):
+            # Convert column of str to tuple
+            # df[col] = df[col].apply(ast.literal_eval)
+
             # Replace second value with boolean
             # df[col] = df[col].apply(lambda x: (x[0], 'on' if x[1] > 0 else 'off'))
             pass
@@ -94,13 +98,18 @@ room28 = RoomPredictor(training_data, 'r28', ['motion_sensor4'])
 room29 = RoomPredictor(training_data, 'r29', ['motion_sensor5'])
 room32 = RoomPredictor(training_data, 'r32', ['motion_sensor6'])
 
+room3 = RoomPredictor(training_data, 'r3', ['camera1'])
+room21 = RoomPredictor(training_data, 'r21', ['camera2'])
+room25 = RoomPredictor(training_data, 'r25', ['camera3'])
+room34 = RoomPredictor(training_data, 'r34', ['camera4'])
+
 def get_action(sensor_data):
     # declare state as a global variable so it can be read and modified within this function
     global state
     #global params
 
     # TODO: Add code to generate your chosen actions, using the current state and sensor_data
-    threshold = 0.99
+    threshold = 0.51
 
     room1_prediction = room1.prediction(threshold=threshold, motion=sensor_data['motion_sensor1'])
     room14_prediction = room14.prediction(threshold=threshold, motion=sensor_data['motion_sensor2'])
@@ -108,14 +117,61 @@ def get_action(sensor_data):
     room28_prediction = room28.prediction(threshold=threshold, motion=sensor_data['motion_sensor4'])
     room29_prediction = room29.prediction(threshold=threshold, motion=sensor_data['motion_sensor5'])
     room32_prediction = room32.prediction(threshold=threshold, motion=sensor_data['motion_sensor6'])
+    room3_prediction = room3.prediction(threshold=threshold, camera=sensor_data['camera1'])
+    room21_prediction = room21.prediction(threshold=threshold, camera=sensor_data['camera2'])
+    room25_prediction = room25.prediction(threshold=threshold, camera=sensor_data['camera3'])
+    room34_prediction = room34.prediction(threshold=threshold, camera=sensor_data['camera4'])
 
-    actions_dict = {'lights1': room1_prediction, 'lights2': 'on', 'lights3': 'on', 'lights4': 'on', 
-                    'lights5': 'on', 'lights6': 'on', 'lights7': 'on', 'lights8': 'on', 
-                    'lights9': 'on', 'lights10': 'on', 'lights11': 'on', 'lights12': 'on',
-                    'lights13': 'on', 'lights14': room14_prediction, 'lights15': 'on', 'lights16': 'on', 
-                    'lights17': 'on', 'lights18': 'on', 'lights19': room19_prediction, 'lights20': 'on',
-                    'lights21': 'on', 'lights22': 'on', 'lights23': 'on', 'lights24': 'on',
-                    'lights25': 'on', 'lights26': 'on', 'lights27': 'on', 'lights28': room28_prediction,
-                    'lights29': room29_prediction, 'lights30': 'on', 'lights31': 'on', 'lights32': room32_prediction,
-                    'lights33': 'on', 'lights34': 'on'}
+    actions_dict = {
+        'lights1': room1_prediction, 
+        'lights2': 'on', 
+        'lights3': room3_prediction, 
+        'lights4': 'on', 
+        'lights5': 'on', 
+        'lights6': 'on', 
+        'lights7': 'on', 
+        'lights8': 'on', 
+        'lights9': 'on', 
+        'lights10': 'on', 
+        'lights11': 'on', 
+        'lights12': 'on',
+        'lights13': 'on', 
+        'lights14': room14_prediction, 
+        'lights15': 'on', 
+        'lights16': 'on', 
+        'lights17': 'on', 
+        'lights18': 'on', 
+        'lights19': room19_prediction, 
+        'lights20': 'on',
+        'lights21': room21_prediction, 
+        'lights22': 'on', 
+        'lights23': 'on', 
+        'lights24': 'on',
+        'lights25': room25_prediction, 
+        'lights26': 'on', 
+        'lights27': 'on', 
+        'lights28': room28_prediction,
+        'lights29': room29_prediction, 
+        'lights30': 'on', 
+        'lights31': 'on', 
+        'lights32': room32_prediction,
+        'lights33': 'on', 
+        'lights34': room34_prediction
+    }
+
+    # Convert robot predictions from str to tuple
+    try:
+        print(sensor_data['robot1'], sensor_data['robot2'])
+        robot1_room, robot1_people = tuple(re.sub('[^A-Za-z0-9 ]+', '', sensor_data['robot1']).split(' '))
+        robot2_room, robot2_people = tuple(re.sub('[^A-Za-z0-9 ]+', '', sensor_data['robot2']).split(' '))
+    except Exception as err:
+        pass
+
+    if robot1_room is not None and robot1_room.startswith('r'):
+        robot1_light = robot1_room.replace('r', 'lights')
+        actions_dict[robot1_light] = 'on' if int(robot1_people) > 0 else 'off'
+    if robot2_room is not None and robot2_room.startswith('r'):
+        robot2_light = robot2_room.replace('r', 'lights')
+        actions_dict[robot2_light] = 'on' if int(robot2_people) > 0 else 'off'
+
     return actions_dict
