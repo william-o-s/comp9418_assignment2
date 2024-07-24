@@ -160,18 +160,21 @@ def get_action(sensor_data):
     }
 
     # Convert robot predictions from str to tuple
-    try:
-        print(sensor_data['robot1'], sensor_data['robot2'])
-        robot1_room, robot1_people = tuple(re.sub('[^A-Za-z0-9 ]+', '', sensor_data['robot1']).split(' '))
-        robot2_room, robot2_people = tuple(re.sub('[^A-Za-z0-9 ]+', '', sensor_data['robot2']).split(' '))
-    except Exception as err:
-        pass
-
-    if robot1_room is not None and robot1_room.startswith('r'):
-        robot1_light = robot1_room.replace('r', 'lights')
-        actions_dict[robot1_light] = 'on' if int(robot1_people) > 0 else 'off'
-    if robot2_room is not None and robot2_room.startswith('r'):
-        robot2_light = robot2_room.replace('r', 'lights')
-        actions_dict[robot2_light] = 'on' if int(robot2_people) > 0 else 'off'
+    def extract_tuple(robot):
+        room = re.search("(?<=')\w+", robot).group()
+        count = re.search("(?<=\s)\d+", robot).group()
+        return room, count
+    
+    def robot_action(robot) -> None:
+        if robot is None or robot == 'None':
+            return
+        
+        room, people = extract_tuple(robot)
+        if room is not None and room.startswith('r'):
+            light = room.replace('r', 'lights')
+            actions_dict[light] = 'on' if int(people) > 0 else 'off'
+    
+    robot_action(sensor_data['robot1'])
+    robot_action(sensor_data['robot2'])
 
     return actions_dict

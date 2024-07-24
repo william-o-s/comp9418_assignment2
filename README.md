@@ -1,13 +1,25 @@
 # TODO
 
-1. (Will) SWICD - refine the model + data experiments + read through Freya's viz-v2
-2. (Freya) n/a
+- Move response into a state variable
+- Use adjacent rooms at time t-1 as evidence for rooms at time t
+- Try to implement doors (see if they help)
+- Try bucketing room numbers
+- Add NoneType for other sensors
+
+1. (Freya)
+    1. Adjacent rooms
+    2. State variable
+    3. Adding NoneType
+2. (Will)
+    1. Implementing door sensors
+    2. Bucketing room numbers
 
 # Soft Deadlines
 
 1. ~~Saturday July 20th - finish prelim todos~~
 2. ~~Sunday July 21st - draft model out~~
-3. Wednesday July 24th - todos
+3. ~~Wednesday July 24th - todos~~
+4. Saturday July 27th - todos
 
 # Hard Deadlines
 
