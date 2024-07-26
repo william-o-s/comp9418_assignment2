@@ -7,24 +7,24 @@ from itertools import combinations
 
 from MF_DiscreteFactors import Factor
 from MF_Graph import Graph
-from MF_Utils import estimate_factor
+import MF_Utils as Utils
 
 class BayesNet():
-    def __init__(self, graph=None, outcomeSpace=None, factor_dict=None):
+    def __init__(self, graph=None, outcome_space=None, factor_dict=None):
         self.graph = Graph()
-        self.outcomeSpace = dict()
+        self.outcome_space = dict()
         self.factors = dict()
         if graph is not None:
             self.graph = graph
-        if outcomeSpace is not None:
-            self.outcomeSpace = outcomeSpace
+        if outcome_space is not None:
+            self.outcome_space = outcome_space
         if factor_dict is not None:
             self.factors = factor_dict
             
     def learnParameters(self, data):
         graphT = self.graph.transpose()
         for node, parents in graphT.adj_list.items():
-            f = estimate_factor(data, node, parents, self.outcomeSpace)
+            f = Utils.estimate_factor(data, node, parents, self.outcome_space)
             self.factors[node] = f
             
     def joint(self):
@@ -88,7 +88,7 @@ class BayesNet():
         # We process the factors in elimination order
         for var in order:
             # We create an empty factor as an accumulator
-            newFactor = Factor(tuple(), self.outcomeSpace)
+            newFactor = Factor(tuple(), self.outcome_space)
             # A list to keep track of all the factors we will keep for the next step
             updatedFactorsList = list()            
 
@@ -109,7 +109,7 @@ class BayesNet():
             # replace factorList with the new factor list, ready for the next iteration
             factorList = updatedFactorsList
         # for the final step, we join all remaining factors (usually there will only be one factor remaining)
-        returnFactor = Factor(tuple(), self.outcomeSpace)
+        returnFactor = Factor(tuple(), self.outcome_space)
         for f in factorList:
             returnFactor = returnFactor*f
         return returnFactor

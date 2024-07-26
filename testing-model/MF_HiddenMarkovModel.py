@@ -142,5 +142,5 @@ class HiddenMarkovModel():
         mleList = []
         stateVar = self.state.domain[0]
         for idx in indexList:
-            mleList.append(self.state.outcomeSpace[stateVar][idx]) 
+            mleList.append(self.state.outcome_space[stateVar][idx]) 
         return mleList

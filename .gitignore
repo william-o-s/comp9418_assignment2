@@ -1,3 +1,8 @@
+# Redownloaded files
+BayesNet_VE.py
+DiscreteFactors.py
+Graph.py
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
