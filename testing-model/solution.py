@@ -105,16 +105,18 @@ room_evidences = {
     'r1'    : ['motion_sensor1'],
     'r14'   : ['motion_sensor2'],
     'r19'   : ['motion_sensor3'],
-    'r28'   : ['motion_sensor4', 'door_sensor4'],
+    # 'r28'   : ['motion_sensor4', 'door_sensor4'],
+    'r28'   : ['motion_sensor4'],
     'r29'   : ['motion_sensor5'],
     'r32'   : ['motion_sensor6'],
-    'r3'    : ['camera1', 'door_sensor1'],
+    # 'r3'    : ['camera1', 'door_sensor1'],
+    'r3'    : ['camera1'],
     'r21'   : ['camera2'],
     'r25'   : ['camera3'],
     'r34'   : ['camera4'],
-    'r2': ['door_sensor1'],
-    'r20': ['door_sensor3'],
-    'r26': ['door_sensor3'],
+    # 'r2': ['door_sensor1'],
+    # 'r20': ['door_sensor3'],
+    # 'r26': ['door_sensor3'],
 }
 
 # Manual repeated entries
