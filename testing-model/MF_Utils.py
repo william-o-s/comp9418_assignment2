@@ -19,9 +19,10 @@ REGEX_TIME = re.compile(r'^time$')
 REGEX_CAMERA = r'^camera[0-9]*$'
 REGEX_DOOR_SENSOR = r'^door_sensor[0-9]*$'
 REGEX_ROOM = r'^r[0-9]*$'
+REGEX_ROOM_LAST = r'^r[0-9]+'
 REGEX_CORRIDOR = r'^c[0-9]*$'
 REGEX_OUTSIDE = r'^outside$'
-REGEX_PEOPLE_COUNT = re.compile('|'.join([REGEX_CAMERA, REGEX_DOOR_SENSOR, REGEX_ROOM, REGEX_CORRIDOR, REGEX_OUTSIDE]))
+REGEX_PEOPLE_COUNT = re.compile('|'.join([REGEX_CAMERA, REGEX_DOOR_SENSOR, REGEX_ROOM, REGEX_CORRIDOR, REGEX_OUTSIDE, REGEX_ROOM_LAST]))
 
 ###################################
 # Buckets for replacing values

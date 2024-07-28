@@ -51,8 +51,6 @@ import MF_Utils as Utils
 
 # this global state variable demonstrates how to keep track of information over multiple 
 # calls to get_action
-state = {} 
-
 # params = pd.read_csv(...)
 
 ###################################
@@ -76,7 +74,22 @@ def setup_training_data(filename: Literal['data1.csv', 'data2.csv']) -> pd.DataF
             # Replace with buckets
             df[col] = df[col].astype(object)
             df[col] = df[col].apply(Utils.bucket_people_count)
-    return df
+
+    # set up dataframe to use the past value of neighbouring rooms
+    shifted = df.shift(1)
+    # fill in t-1 bracket as no one there
+    shifted.iloc[0,17:53] = '0'
+    shifted.iloc[0,53] = '>=10'
+
+    # rename these columns
+    names = shifted.iloc[:,17:54].columns
+    names = [i+'_last' for i in names]
+    shifted = shifted.iloc[:,17:54]
+    shifted.columns = names
+
+    #combine data
+    combo = pd.concat([df, shifted], axis =1)
+    return combo
 
 def process_sensor_data(sensor_data: dict[str]) -> dict[str]:
     new_sensor_data = {}
@@ -89,7 +102,7 @@ def process_sensor_data(sensor_data: dict[str]) -> dict[str]:
         if Utils.REGEX_TIME.match(var_name):
             new_sensor_data[var_name] = Utils.bucket_time_of_day(data)
         elif Utils.REGEX_PEOPLE_COUNT.match(var_name):
-            new_sensor_data[var_name] = Utils.bucket_people_count(data)
+            new_sensor_data[var_name] = Utils.bucket_people_count(int(data))
         else:
             new_sensor_data[var_name] = data
 
@@ -117,11 +130,110 @@ room_evidences = {
     # 'r2': ['door_sensor1'],
     # 'r20': ['door_sensor3'],
     # 'r26': ['door_sensor3'],
+    'r2'    : [],
+    'r4'    : [],
+    'r5'    : [],
+    'r6'    : [],
+    'r7'    : [],
+    'r8'    : [],
+    'r9'    : [],
+    'r10'   : [],
+    'r11'   : [],
+    'r12'   : [],
+    'r13'   : [],
+    'r15'   : [],
+    'r16'   : [],
+    'r17'   : [],
+    'r18'   : [],
+    'r20'   : [],
+    'r22'   : [],
+    'r23'   : [],
+    'r24'   : [],
+    'r26'   : [],
+    'r27'   : [],
+    'r30'   : [],
+    'r31'   : [],
+    'r33'   : [],
+    'c1'   : [],   
+    # 'c2'   : [],
 }
 
+# comments bc i was going to remove corridors for a test
+# pretending c2 doesn't exist so that my computer doesnt die
+room_adj_ls = {'r1': ['r2_last'],
+ 'r3': ['r2_last', 'r12_last'],
+ 'c2': ['r12_last',
+  'r11_last',
+  'r17_last',
+  'r18_last',
+  'r13_last',
+  'r9_last',
+  'r10_last',
+  'r16_last',
+  'r15_last',
+  'r7_last',
+  'r8_last',
+  'c1_last'],
+ 'r14': ['c1_last', 'r6_last', 'r22_last'],
+#'r14': ['r6_last', 'r22_last'],
+
+ 'r5': ['r6_last'],
+ 'r4': ['r6_last'],
+ 'r24': ['r22_last', 'r28_last'],
+ 'r34': ['r33_last', 'r28_last'],
+ 'c1': ['r28_last', 'r27_last', 'r21_last', 'c2_last', 'r14_last'],
+ 'c1': ['r28_last', 'r27_last', 'r21_last', 'r14_last'],
+
+ 'r26': ['r27_last', 'r20_last', 'r30_last', 'r25_last'],
+ 'r19': ['r23_last', 'r20_last'],
+ 'r23': ['r20_last', 'r19_last'],
+ 'r21': ['r27_last', 'c1_last'],
+#   'r21': ['r27_last'],
+
+ 'r29': ['r30_last', 'r25_last'],
+ 'r32': ['r27_last', 'r31_last'],
+ 'r2': ['r1_last', 'r3_last'],
+ 'r12': ['r3_last', 'c2_last'],
+ 'r11': ['c2_last'],
+ 'r17': ['c2_last'],
+ 'r18': ['c2_last'],
+ 'r13': ['c2_last'],
+ 'r9': ['c2_last'],
+ 'r10': ['c2_last'],
+ 'r16': ['c2_last'],
+ 'r15': ['c2_last'],
+ 'r7': ['c2_last'],
+ 'r8': ['c2_last'],
+#  'r11': [],
+#  'r17': [],
+#  'r18': [],
+#  'r13': [],
+#  'r9': [],
+#  'r10': [],
+#  'r16': [],
+#  'r15': [],
+#  'r7': [],
+#  'r8': [],
+ 'r6': ['r14_last', 'r5_last', 'r4_last'],
+ 'r22': ['r14_last', 'r24_last'],
+ 'r28': ['r24_last', 'r34_last', 'c1_last'],
+ 'r33': ['r34_last'],
+ 'r27': ['c1_last', 'r26_last', 'r21_last', 'r32_last'],
+ 'r20': ['r26_last', 'r19_last', 'r23_last'],
+ 'r30': ['r26_last', 'r29_last'],
+ 'r25': ['r26_last', 'r29_last'],
+ 'r31': ['r32_last']}
+
 # Manual repeated entries
-for evidence in room_evidences.values():
+for key, evidence in room_evidences.items():
     evidence.append('time')
+    evidence.extend(room_adj_ls[key])
+
+# initialise state var
+state = {} 
+for key in room_evidences:
+    state[key]='0'
+
 
 # Remap outcomes for each room
 remap_count_outcome = {
@@ -129,18 +241,33 @@ remap_count_outcome = {
     for var_name in training_data.columns
     if Utils.REGEX_PEOPLE_COUNT.match(var_name)
 }
+
 outcomes_remap: dict[str, tuple] = { **remap_count_outcome, 'time': Utils.TIME_BUCKETS }
 
-room_predictors = {
-    str('lights' + str(room[1:])): RoomPredictor(training_data, room, evidence, outcomes_remap)
-    for room, evidence in room_evidences.items()
-}
+# room_predictors = {
+#     str('lights' + str(room[1:])): RoomPredictor(training_data, room, evidence, outcomes_remap)
+#     for room, evidence in room_evidences.items()
+# }
+# print('outcomes remap', outcomes_remap)
+# print('room evidences', room_evidences)
+
+# room_predictors = {
+#     room: RoomPredictor(training_data, room, evidence, outcomes_remap)
+#     for room, evidence in room_evidences.items()
+# }
+room_predictors = {}
+for room, evidence in room_evidences.items():
+
+    room_predictors[room]= RoomPredictor(training_data, room, evidence, outcomes_remap)
 
 ###################################
 # CONFIG
 
-threshold = 0.5
+threshold = .9 #0.5
 print('Threshold: ' + str(threshold))
+
+room_labels = [key for key in room_evidences]
+
 
 def get_action(sensor_data: dict[str]):
     # declare state as a global variable so it can be read and modified within this function
@@ -148,15 +275,33 @@ def get_action(sensor_data: dict[str]):
     # global params
 
     sensor_data = process_sensor_data(sensor_data)
+    for key, val in state.items():
+        newkey = key + '_last'
+        sensor_data[newkey]=val
+
 
     # TODO: Add code to generate your chosen actions, using the current state and sensor_data
 
     lights_labels = ['lights' + str(i) for i in range(1, 35)]
-    actions_dict = {
-        light: room_predictors[light].prediction(threshold=threshold, **sensor_data)    # NOTE: this has a side effect! Do not call prediction multiple times in the same iteration!
-        if light in room_predictors else 'on'   # if no predictor, just force on
-        for light in lights_labels
+
+    # this now returns a tuple - (prediction_output, lights)
+    all = {
+        room: room_predictors[room].prediction(threshold=threshold, **sensor_data)
+        for room in room_labels
     }
+    # new state variables
+    state = {room: all[room][0] for room in room_labels}
+
+    # actions_dict = {
+    #     light: room_predictors[light].prediction(threshold=threshold, **sensor_data)    # NOTE: this has a side effect! Do not call prediction multiple times in the same iteration!
+    #     if light in room_predictors else 'on'   # if no predictor, just force on
+    #     for light in lights_labels
+    # }
+    actions_dict = {}
+    for room in room_labels:
+        if room not in ['c1', 'c2']:
+            light_label = str('lights' + str(room[1:]))
+            actions_dict[light_label]= all[room][1]
 
     # Convert robot predictions from str to tuple
     def extract_tuple(robot):
@@ -169,9 +314,13 @@ def get_action(sensor_data: dict[str]):
             return
         
         room, people = extract_tuple(robot)
-        if room is not None and room.startswith('r'):
-            light = room.replace('r', 'lights')
-            actions_dict[light] = 'on' if int(people) > 0 else 'off'
+        if room is not None:
+            # record for next get action 
+            state[room]= Utils.bucket_people_count(int(people))
+
+            if room.startswith('r'):
+                light = room.replace('r', 'lights')
+                actions_dict[light] = 'on' if int(people) > 0 else 'off'
     
     if 'robot1' in sensor_data:
         robot_action(sensor_data['robot1'])

@@ -176,7 +176,6 @@ class SmartBuildingSimulatorExample:
             else:
                 raise Exception("Invalid light state")
         return cost
-
 simulator = SmartBuildingSimulatorExample()
 total_cost = 0
 for i in range(len(simulator.data)):

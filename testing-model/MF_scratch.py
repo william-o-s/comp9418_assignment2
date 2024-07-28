@@ -15,15 +15,24 @@ class RoomPredictor:
             data: pd.DataFrame,
             room: str,
             sensors: list[str],
-            outcomes_remap: dict[str, tuple] = None) -> None:
+            room_adj_ls: dict,
+            outcomes_remap: dict[str, tuple] = None)-> None:
         # Avoid door_sensor for now
-        # assert all(not x.startswith('door_sensor') for x in sensors)
+        assert all(not x.startswith('door_sensor') for x in sensors)
 
         # Setup training data
         self.room = room
         self.sensors = sensors
+
+        #initialise adjacent room shifting
+        self.adj_rooms = room_adj_ls[room]
+        shifted_data = data.shift(1)
+        shifted_data = shifted_data[self.adj_rooms]
+        
+
         self.vars = [room] + sensors
         self.training_data = data[self.vars]
+
 
         # Setup outcome space
         self.outcome_space = self.learn_outcome_space()
@@ -47,21 +56,15 @@ class RoomPredictor:
 
         # print(prediction_factor)
 
-
-        # prediction is now not off or on, it's bins, so need to return both
-        mle_index = prediction_factor.table.argmax()
-        prediction = self.outcome_space[self.room][mle_index]
-        light = 'on'
-        if prediction == '0':
-            light = 'off'
-        
         if threshold is not None:
             # TODO: fix this people count index (the '0' is hardcoded)
             if prediction_factor['0'] >= threshold:
-                return prediction,'off'
-            return prediction, 'on'
+                return 'off'
+            return 'on'
 
-        return prediction, light
+        mle_index = prediction_factor.table.argmax()
+        prediction = self.outcome_space[self.room][mle_index]
+        return prediction
 
     def learn_outcome_space(self) -> dict[str, tuple]:
         '''Learns the outcome space for each variable in the training data'''
