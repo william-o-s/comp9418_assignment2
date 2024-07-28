@@ -58,55 +58,40 @@ state = {}
 ###################################
 # Training data
 
-# column values: motion / no motion
-REGEX_MOTION_SENSOR = re.compile(r'^motion_sensor[0-9]*$')
-# column values: tuple(room, # of people)
-REGEX_ROBOT = re.compile(r'^robot[0-9]*$')
-# column values: date time
-REGEX_TIME = re.compile(r'^time$')
-# column values: # of people
-REGEX_CAMERA = r'^camera[0-9]*$'
-REGEX_DOOR_SENSOR = r'^door_sensor[0-9]*$'
-REGEX_ROOM = r'^r[0-9]*$'
-REGEX_CORRIDOR = r'^c[0-9]*$'
-REGEX_OUTSIDE = r'^outside$'
-REGEX_PEOPLE_COUNT = re.compile('|'.join([REGEX_CAMERA, REGEX_DOOR_SENSOR, REGEX_ROOM, REGEX_CORRIDOR, REGEX_OUTSIDE]))
-
-def parse_str_to_time(time_str: str) -> dt.datetime:
-    return dt.datetime.strptime(time_str, '%H:%M:%S')
-
 def setup_training_data(filename: Literal['data1.csv', 'data2.csv']) -> pd.DataFrame:
     df = pd.read_csv(filename, header=[0], index_col=[0])
 
     # Set all columns
     for col in df.columns:
-        if REGEX_MOTION_SENSOR.match(col):
+        if Utils.REGEX_MOTION_SENSOR.match(col):
             pass
-        elif REGEX_ROBOT.match(col):
+        elif Utils.REGEX_ROBOT.match(col):
             # Replace with actual tuple and convert to boolean
             # df[col] = df[col].apply(ast.literal_eval)
             # df[col] = df[col].apply(lambda x: (x[0], 'on' if x[1] > 0 else 'off'))
             pass
-        elif REGEX_TIME.match(col):
-            df[col] = df[col].apply(parse_str_to_time)
-        elif REGEX_PEOPLE_COUNT.match(col):
+        elif Utils.REGEX_TIME.match(col):
+            df[col] = df[col].apply(Utils.bucket_time_of_day)
+        elif Utils.REGEX_PEOPLE_COUNT.match(col):
             # Replace with buckets
             df[col] = df[col].astype(object)
             df[col] = df[col].apply(Utils.bucket_people_count)
     return df
 
 def process_sensor_data(sensor_data: dict[str]) -> dict[str]:
-    new_sensor_data = copy.deepcopy(sensor_data)
+    new_sensor_data = {}
 
     # Set all data
-    for var_name, data in new_sensor_data.items():
-        if not data:
+    for var_name, data in sensor_data.items():
+        if data is None:
             continue    # IGNORE NONETYPE LIKE GUSTAVO SAYS
 
-        if REGEX_TIME.match(var_name) and isinstance(data, str):
-            new_sensor_data[var_name] = parse_str_to_time(data)
-        elif REGEX_PEOPLE_COUNT.match(var_name):
+        if Utils.REGEX_TIME.match(var_name):
+            new_sensor_data[var_name] = Utils.bucket_time_of_day(data)
+        elif Utils.REGEX_PEOPLE_COUNT.match(var_name):
             new_sensor_data[var_name] = Utils.bucket_people_count(data)
+        else:
+            new_sensor_data[var_name] = data
 
     return new_sensor_data
 
@@ -115,29 +100,42 @@ def process_sensor_data(sensor_data: dict[str]) -> dict[str]:
 
 training_data = setup_training_data('data1.csv')
 
+# Define rooms and their evidence
+room_evidences = {
+    'r1'    : ['motion_sensor1'],
+    'r14'   : ['motion_sensor2'],
+    'r19'   : ['motion_sensor3'],
+    'r28'   : ['motion_sensor4'],
+    'r29'   : ['motion_sensor5'],
+    'r32'   : ['motion_sensor6'],
+    'r3'    : ['camera1'],
+    'r21'   : ['camera2'],
+    'r25'   : ['camera3'],
+    'r34'   : ['camera4'],
+    # 'r2': ['door_sensor1'],
+}
+
+# Manual repeated entries
+for evidence in room_evidences.values():
+    evidence.append('time')
+
+# Remap outcomes for each room
 remap_count_outcome = {
     var_name: Utils.PEOPLE_COUNT_BUCKETS
     for var_name in training_data.columns
-    if REGEX_PEOPLE_COUNT.match(var_name)
+    if Utils.REGEX_PEOPLE_COUNT.match(var_name)
 }
 outcomes_remap: dict[str, tuple] = { **remap_count_outcome, 'time': Utils.TIME_BUCKETS }
 
-room1 = RoomPredictor(training_data, 'r1', ['motion_sensor1'], outcomes_remap)
-room14 = RoomPredictor(training_data, 'r14', ['motion_sensor2'], outcomes_remap)
-room19 = RoomPredictor(training_data, 'r19', ['motion_sensor3'], outcomes_remap)
-room28 = RoomPredictor(training_data, 'r28', ['motion_sensor4'], outcomes_remap)
-room29 = RoomPredictor(training_data, 'r29', ['motion_sensor5'], outcomes_remap)
-room32 = RoomPredictor(training_data, 'r32', ['motion_sensor6'], outcomes_remap)
-
-room3 = RoomPredictor(training_data, 'r3', ['camera1'], outcomes_remap)
-room21 = RoomPredictor(training_data, 'r21', ['camera2'], outcomes_remap)
-room25 = RoomPredictor(training_data, 'r25', ['camera3'], outcomes_remap)
-room34 = RoomPredictor(training_data, 'r34', ['camera4'], outcomes_remap)
+room_predictors = {
+    str('lights' + str(room[1:])): RoomPredictor(training_data, room, evidence, outcomes_remap)
+    for room, evidence in room_evidences.items()
+}
 
 ###################################
 # CONFIG
 
-threshold = 0.99
+threshold = 0.5
 print('Threshold: ' + str(threshold))
 
 def get_action(sensor_data: dict[str]):
@@ -149,52 +147,11 @@ def get_action(sensor_data: dict[str]):
 
     # TODO: Add code to generate your chosen actions, using the current state and sensor_data
 
-    room1_prediction = room1.prediction(threshold=threshold, motion=sensor_data['motion_sensor1'])
-    room14_prediction = room14.prediction(threshold=threshold, motion=sensor_data['motion_sensor2'])
-    room19_prediction = room19.prediction(threshold=threshold, motion=sensor_data['motion_sensor3'])
-    room28_prediction = room28.prediction(threshold=threshold, motion=sensor_data['motion_sensor4'])
-    room29_prediction = room29.prediction(threshold=threshold, motion=sensor_data['motion_sensor5'])
-    room32_prediction = room32.prediction(threshold=threshold, motion=sensor_data['motion_sensor6'])
-    room3_prediction = room3.prediction(threshold=threshold, camera=sensor_data['camera1'])
-    room21_prediction = room21.prediction(threshold=threshold, camera=sensor_data['camera2'])
-    room25_prediction = room25.prediction(threshold=threshold, camera=sensor_data['camera3'])
-    room34_prediction = room34.prediction(threshold=threshold, camera=sensor_data['camera4'])
-
+    lights_labels = ['lights' + str(i) for i in range(1, 35)]
     actions_dict = {
-        'lights1': room1_prediction, 
-        'lights2': 'on', 
-        'lights3': room3_prediction, 
-        'lights4': 'on', 
-        'lights5': 'on', 
-        'lights6': 'on', 
-        'lights7': 'on', 
-        'lights8': 'on', 
-        'lights9': 'on', 
-        'lights10': 'on', 
-        'lights11': 'on', 
-        'lights12': 'on',
-        'lights13': 'on', 
-        'lights14': room14_prediction, 
-        'lights15': 'on', 
-        'lights16': 'on', 
-        'lights17': 'on', 
-        'lights18': 'on', 
-        'lights19': room19_prediction, 
-        'lights20': 'on',
-        'lights21': room21_prediction, 
-        'lights22': 'on', 
-        'lights23': 'on', 
-        'lights24': 'on',
-        'lights25': room25_prediction, 
-        'lights26': 'on', 
-        'lights27': 'on', 
-        'lights28': room28_prediction,
-        'lights29': room29_prediction, 
-        'lights30': 'on', 
-        'lights31': 'on', 
-        'lights32': room32_prediction,
-        'lights33': 'on', 
-        'lights34': room34_prediction
+        light: room_predictors[light].prediction(threshold=threshold, **sensor_data)    # NOTE: this has a side effect! Do not call prediction multiple times in the same iteration!
+        if light in room_predictors else 'on'   # if no predictor, just force on
+        for light in lights_labels
     }
 
     # Convert robot predictions from str to tuple
@@ -212,7 +169,11 @@ def get_action(sensor_data: dict[str]):
             light = room.replace('r', 'lights')
             actions_dict[light] = 'on' if int(people) > 0 else 'off'
     
-    robot_action(sensor_data['robot1'])
-    robot_action(sensor_data['robot2'])
+    if 'robot1' in sensor_data:
+        robot_action(sensor_data['robot1'])
+    if 'robot2' in sensor_data:
+        robot_action(sensor_data['robot2'])
 
     return actions_dict
+
+# print(get_action({ 'motion_sensor1': 'no motion' }))

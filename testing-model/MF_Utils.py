@@ -1,11 +1,42 @@
+import datetime as dt
 import numpy as np
 import pandas as pd
+import re
 from itertools import product
 
 from MF_DiscreteFactors import Factor
 
+###################################
+# Regex helpers
+
+# column values: motion / no motion
+REGEX_MOTION_SENSOR = re.compile(r'^motion_sensor[0-9]*$')
+# column values: tuple(room, # of people)
+REGEX_ROBOT = re.compile(r'^robot[0-9]*$')
+# column values: date time
+REGEX_TIME = re.compile(r'^time$')
+# column values: # of people
+REGEX_CAMERA = r'^camera[0-9]*$'
+REGEX_DOOR_SENSOR = r'^door_sensor[0-9]*$'
+REGEX_ROOM = r'^r[0-9]*$'
+REGEX_CORRIDOR = r'^c[0-9]*$'
+REGEX_OUTSIDE = r'^outside$'
+REGEX_PEOPLE_COUNT = re.compile('|'.join([REGEX_CAMERA, REGEX_DOOR_SENSOR, REGEX_ROOM, REGEX_CORRIDOR, REGEX_OUTSIDE]))
+
+###################################
+# Buckets for replacing values
+
 PEOPLE_COUNT_BUCKETS = ('0', '<3', '<10', '>=10')
-TIME_BUCKETS = ('morning', 'afternoon', 'evening')
+# TIME_BUCKETS = ('morning', 'afternoon', 'evening')
+TIME_BUCKETS = tuple(str(x) for x in range(8, 19))
+
+def parse_str_to_time(time_str: str) -> dt.datetime:
+    return dt.datetime.strptime(time_str, '%H:%M:%S')
+
+def bucket_time_of_day(time) -> str:
+    if isinstance(time, str):
+        return TIME_BUCKETS[int(time[:2]) - 8]
+    return TIME_BUCKETS[time.hour - 8]
 
 def bucket_people_count(count: int) -> str:
     if count == 0:
