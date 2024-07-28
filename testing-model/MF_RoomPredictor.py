@@ -17,7 +17,7 @@ class RoomPredictor:
             sensors: list[str],
             outcomes_remap: dict[str, tuple] = None) -> None:
         # Avoid door_sensor for now
-        assert all(not x.startswith('door_sensor') for x in sensors)
+        # assert all(not x.startswith('door_sensor') for x in sensors)
 
         # Setup training data
         self.room = room
