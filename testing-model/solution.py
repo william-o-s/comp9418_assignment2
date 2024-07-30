@@ -111,7 +111,13 @@ def process_sensor_data(sensor_data: dict[str]) -> dict[str]:
 ###################################
 # Setup
 
-training_data = setup_training_data('data1.csv')
+data1_training_data = setup_training_data('data1.csv')
+data2_training_data = setup_training_data('data2.csv')
+
+training_data = pd.concat([data1_training_data, data2_training_data], axis=0)
+# training_data = data1_training_data
+# training_data = data2_training_data
+print(training_data.shape)
 
 # Define rooms and their evidence
 room_evidences = {
