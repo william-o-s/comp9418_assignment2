@@ -106,6 +106,8 @@ class Factor:
         This function must be used to set evidence on all factors before joining,
         because it removes the relevant variable from the factor. 
         '''
+        return self.evidence2(**kwargs)
+
         f = self.copy()
         evidence_dict = kwargs
         for var, value in evidence_dict.items():

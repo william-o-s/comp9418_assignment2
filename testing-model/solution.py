@@ -114,8 +114,8 @@ def process_sensor_data(sensor_data: dict[str]) -> dict[str]:
 data1_training_data = setup_training_data('data1.csv')
 data2_training_data = setup_training_data('data2.csv')
 
-training_data = pd.concat([data1_training_data, data2_training_data], axis=0)
-# training_data = data1_training_data
+# training_data = pd.concat([data1_training_data, data2_training_data], axis=0)
+training_data = data1_training_data
 # training_data = data2_training_data
 print(training_data.shape)
 
@@ -232,7 +232,7 @@ room_adj_ls = {'r1': ['r2_last'],
 
 # Manual repeated entries
 for key, evidence in room_evidences.items():
-    evidence.append('time')
+    # evidence.append('time')
     evidence.extend(room_adj_ls[key])
 
 # initialise state var

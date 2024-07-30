@@ -36,8 +36,22 @@ def parse_str_to_time(time_str: str) -> dt.datetime:
 
 def bucket_time_of_day(time) -> str:
     if isinstance(time, str):
-        return TIME_BUCKETS[int(time[:2]) - 8]
-    return TIME_BUCKETS[time.hour - 8]
+        index = int(time[:2]) - 8
+    else:
+        index = time.hour - 8
+    # if isinstance(time, str):
+    #     time = int(time[:2])
+    # else:
+    #     time = time.hour
+
+    # if 8 <= time < 12:
+    #     index = 0
+    # elif 12 <= time < 16:
+    #     index = 1
+    # if 16 <= time <= 18:
+    #     index = 2
+
+    return TIME_BUCKETS[index]
 
 def bucket_people_count(count: int) -> str:
     if count == 0:

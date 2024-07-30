@@ -74,8 +74,8 @@ class Robot:
 # part of the code from the building simulator.
 class SmartBuildingSimulatorExample:
     def __init__(self):
-        self.data = pd.read_csv('data1.csv')   
-        # self.data = pd.read_csv('data2.csv')
+        # self.data = pd.read_csv('data1.csv')
+        self.data = pd.read_csv('data2.csv')
 
         self.num_lights = 34
         self.num_people = 20 
