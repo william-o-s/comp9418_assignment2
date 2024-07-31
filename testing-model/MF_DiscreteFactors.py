@@ -133,6 +133,10 @@ class Factor:
         '''
         f = self.copy()
         evi = kwargs
+
+        # print(self.outcome_space)
+        # print(evi)
+
         indices = tuple(self.outcome_space[v].index(evi[v]) if v in evi else slice(None) for v in self.domain)
         f.table = f.table[indices]
         f.domain = tuple(v for v in f.domain if v not in evi)
