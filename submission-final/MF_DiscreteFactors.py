@@ -130,9 +130,6 @@ class Factor:
         f = self.copy()
         evi = kwargs
 
-        # print(self.outcome_space)
-        # print(evi)
-
         indices = tuple(
             self.outcome_space[v].index(evi[v])
             if v in evi else slice(None)

@@ -216,7 +216,7 @@ def get_action(sensor_data: dict[str]):
     for room_label in room_labels:
         if room_label not in ['c1', 'c2']:
             light_label = str('lights' + str(room_label[1:]))
-            actions_dict[light_label]= all_room_preds[room_label][1]
+            actions_dict[light_label] = all_room_preds[room_label][1]
 
     # Convert robot predictions from str to tuple
     def extract_tuple(robot):
@@ -231,16 +231,16 @@ def get_action(sensor_data: dict[str]):
         robot_room, robot_people = extract_tuple(robot)
         if robot_room is not None:
             # record for next get action
-            state[robot_room]= Utils.bucket_people_count(int(robot_people))
+            state[robot_room] = Utils.bucket_people_count(int(robot_people))
 
             if robot_room.startswith('r'):
                 light = robot_room.replace('r', 'lights')
                 actions_dict[light] = 'on' if int(robot_people) > 0 else 'off'
                 for outcome in room_predictors[robot_room].hmm.state.outcome_space[robot_room]:
                     if outcome == state[robot_room]:
-                        room_predictors[robot_room].hmm.state[outcome]=1
+                        room_predictors[robot_room].hmm.state[outcome] = 1
                     else:
-                        room_predictors[robot_room].hmm.state[outcome]=0
+                        room_predictors[robot_room].hmm.state[outcome] = 0
 
     if 'robot1' in sensor_data:
         robot_action(sensor_data['robot1'])
